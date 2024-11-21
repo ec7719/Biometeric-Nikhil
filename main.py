@@ -44,13 +44,13 @@ def load_and_preprocess_data(data_dir):
     return train_generator, validation_generator
 
 def create_model():
-    # Use transfer learning with ResNet50
+    # Use transfer learning with ResNet50 without downloading weights
     base_model = ResNet50(
-        weights='imagenet', 
+        weights=None,  # Set weights to None to avoid downloading
         include_top=False, 
         input_shape=(*IMAGE_SIZE, 3)
     )
-    base_model.trainable = False
+    base_model.trainable = True  # Set to True if you want to fine-tune the model
 
     model = models.Sequential([
         base_model,
