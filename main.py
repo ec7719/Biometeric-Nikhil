@@ -9,10 +9,12 @@ from sklearn.model_selection import train_test_split
 # Configuration
 IMAGE_SIZE = (224, 224)
 BATCH_SIZE = 32
-NUM_CLASSES = len(os.listdir('ear_images'))  # Assumes folder with subfolders for each person
+TRAIN_DATA_DIR = 'C:\\Users\\annie\\Downloads\\ear nikhil\\DB\\AMIDB\\EarTrainAMI'  # Path to training data
+TEST_DATA_DIR = 'C:\\Users\\annie\\Downloads\\ear nikhil\\DB\\AMIDB\\EarTestAMI'    # Path to testing data
+NUM_CLASSES = len(os.listdir(TRAIN_DATA_DIR))  # Assumes folder with subfolders for each person
 
 def load_and_preprocess_data(data_dir):
-    # Load images from directory
+    # Load images from directory, expecting subfolders for each subject
     datagen = ImageDataGenerator(
         rescale=1./255,
         validation_split=0.2,
@@ -100,11 +102,8 @@ def predict_individual(model, image_path):
 
 # Main execution
 def main():
-    # Paths
-    train_data_dir = 'ear_images'
-    
     # Load and preprocess data
-    train_generator, validation_generator = load_and_preprocess_data(train_data_dir)
+    train_generator, validation_generator = load_and_preprocess_data(TRAIN_DATA_DIR)
     
     # Train model
     trained_model = train_model(train_generator, validation_generator)
