@@ -1,9 +1,10 @@
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications import EfficientNetB0
+from tensorflow.keras.applications import ResNet50
 from sklearn.model_selection import train_test_split
 
 # Configuration
@@ -43,8 +44,8 @@ def load_and_preprocess_data(data_dir):
     return train_generator, validation_generator
 
 def create_model():
-    # Use transfer learning with EfficientNetB0
-    base_model = EfficientNetB0(
+    # Use transfer learning with ResNet50
+    base_model = ResNet50(
         weights='imagenet', 
         include_top=False, 
         input_shape=(*IMAGE_SIZE, 3)
