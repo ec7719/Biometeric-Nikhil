@@ -1,84 +1,64 @@
 import cv2
 import numpy as np
-import tensorflow as tf
 from tensorflow.keras.models import load_model
+from tensorflow.keras.utils import to_categorical
+from sklearn.preprocessing import LabelEncoder
 
-class EarRecognizer:
-    def __init__(self, model_path, labels):
-        # Load pre-trained model
-        self.model = load_model(model_path)
-        self.labels = labels
-        self.image_size = (224, 224)
+# Parameters
+IMG_SIZE = (128, 128)
+MODEL_PATH = "ear_classifier_model.h5"  # Path to your trained model
+LABELS = ['class1', 'class2']  # Update with actual class names
 
-    def preprocess_frame(self, frame):
-        # Resize and normalize frame for model input
-        resized = cv2.resize(frame, self.image_size)
-        normalized = resized / 255.0
-        input_tensor = np.expand_dims(normalized, axis=0)
-        return input_tensor
+# Load the trained model
+model = load_model(MODEL_PATH)
 
-    def recognize_ear(self, ear_image):
-        # Preprocess and predict
-        processed_image = self.preprocess_frame(ear_image)
-        predictions = self.model.predict(processed_image)
-        
-        # Get top prediction
-        top_prediction_index = np.argmax(predictions[0])
-        confidence = predictions[0][top_prediction_index]
-        label = self.labels[top_prediction_index]
-        
-        return label, confidence
+# Pretrained label encoder (assumes same encoder used during training)
+label_encoder = LabelEncoder()
+label_encoder.fit(LABELS)
 
-    def real_time_recognition(self):
-        # Open webcam
-        cap = cv2.VideoCapture(0)
-        
-        while True:
-            # Capture frame-by-frame
-            ret, frame = cap.read()
-            if not ret:
-                break
-            
-            try:
-                # Recognize ear
-                label, confidence = self.recognize_ear(frame)
-                
-                # Display results
-                display_text = f"{label} (Confidence: {confidence:.2f})"
-                cv2.putText(frame, 
-                            display_text, 
-                            (10, 30), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 
-                            1, 
-                            (0, 255, 0), 
-                            2)
-            except Exception as e:
-                print(f"Recognition error: {e}")
-            
-            # Display the resulting frame
-            cv2.imshow('Ear Recognition', frame)
-            
-            # Break loop on 'q' key press
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        
-        # Release resources
-        cap.release()
-        cv2.destroyAllWindows()
+# Function to preprocess the frame for prediction
+def preprocess_frame(frame):
+    img = cv2.resize(frame, IMG_SIZE)
+    img = img / 255.0
+    img = np.expand_dims(img, axis=0)
+    return img
 
-def main():
-    # Load labels (assuming labels are folder names in your dataset)
-    import os
-    labels = os.listdir('ear_images')
-    
-    # Initialize recognizer
-    ear_recognizer = EarRecognizer(
-        model_path='ear_recognition_model.h5', 
-        labels=labels
-    )
-    
-    # Start real-time recognition
-    ear_recognizer.real_time_recognition()
+# Function to predict the user from the frame
+def predict_user(frame):
+    processed_frame = preprocess_frame(frame)
+    prediction = model.predict(processed_frame)
+    predicted_class = label_encoder.inverse_transform([np.argmax(prediction)])
+    return predicted_class[0]
 
-if __name__ == "__main__":
-    main()
+# Initialize webcam
+cap = cv2.VideoCapture(0)
+
+print("Press 's' to capture and predict, 'q' to quit.")
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        print("Failed to capture frame. Exiting...")
+        break
+
+    # Display the webcam feed
+    cv2.imshow("Webcam - Ear Recognition", frame)
+
+    # Key press actions
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('s'):  # Press 's' to capture and predict
+        predicted_user = predict_user(frame)
+        print(f"Predicted User: {predicted_user}")
+        # Overlay the prediction on the frame
+        cv2.putText(frame, f"User: {predicted_user}", (10, 30), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.imshow("Prediction", frame)
+        cv2.waitKey(2000)  # Display the prediction for 2 seconds
+
+    elif key == ord('q'):  # Press 'q' to quit
+        print("Exiting...")
+        break
+
+# Release resources
+cap.release()
+cv2.destroyAllWindows()

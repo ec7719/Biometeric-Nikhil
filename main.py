@@ -5,6 +5,18 @@ from tensorflow.keras import layers, models
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications import ResNet50
 
+# Check for GPU
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        print("Using GPU for training.")
+    except RuntimeError as e:
+        print(e)
+else:
+    print("No GPU available, using CPU.")
+
 # Configuration
 IMAGE_SIZE = (224, 224)
 BATCH_SIZE = 32
@@ -61,27 +73,27 @@ def create_model():
 
     return model
 
-def train_model(train_generator, validation_generator):
+def train_model(train_generator, test_generator):
     model = create_model()
     
-    # Reduce epochs and add more detailed callbacks
+    # Callbacks
     reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
-        monitor='val_loss', 
+        monitor='loss', 
         factor=0.2, 
         patience=5, 
         min_lr=0.00001
     )
 
     early_stopping = tf.keras.callbacks.EarlyStopping(
-        monitor='val_accuracy', 
+        monitor='loss', 
         patience=10, 
         restore_best_weights=True
     )
 
     history = model.fit(
         train_generator,
-        validation_data=validation_generator,
-        epochs=30,  # Reduced epochs
+        validation_data=test_generator,
+        epochs=30,
         callbacks=[early_stopping, reduce_lr]
     )
 
